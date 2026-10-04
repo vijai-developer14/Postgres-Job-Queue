@@ -1,23 +1,32 @@
 import {claimJob, completeJob, failedJob} from './queue.js'
 
 const processJob = async (job)=>{
+    // console.log()
     console.log(job.type, job.payload)
+    // throw new Error('simulationg error')
+    //  await new Promise(() => {})
 }
 const sleep = (ms)=> new Promise((resolve)=>{
     setTimeout(resolve, ms)
 })
 
 const worker = async ()=>{
-    let job = claimJob()
-    while(true){    
+    console.log('worker started polling jobs')
+    
+    while(true){
+
+        let job = await claimJob();
+        if(job === false){
+            console.log('worker failed')
+            await sleep(2000)
+            continue
+        }
+
         if(!job){
             await sleep(3000)
             continue
         }
-        if(job === false){
-            await sleep(2000)
-            continue
-        }
+
 
         try{
             await processJob(job);
@@ -25,6 +34,7 @@ const worker = async ()=>{
         
         }
         catch(error){
+            console.log(job.id, error.message)
             await failedJob(job.id)
         }
 

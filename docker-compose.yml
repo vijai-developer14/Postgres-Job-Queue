@@ -13,5 +13,25 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  worker:
+    build: .
+    command: node worker.js
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+
+  sweep:
+    build: .
+    command: node sweep.js
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+
 volumes:
   pgdata:

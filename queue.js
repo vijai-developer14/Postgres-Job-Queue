@@ -13,8 +13,11 @@ export const enqueue = async(type, payload)=>{
 
 export const claimJob = async()=>{
     try{
-        const result = await pool.query(`UPDATE jobs SET status = 'ongoing', updated_at = NOW() WHERE id = (SELECT id FROM jobs WHERE run_at <= NOW() AND status = 'pending'  ORDER BY run_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`);
+        const result = await pool.query(`UPDATE jobs SET status = 'ongoing', updated_at = NOW() 
+            WHERE id = (SELECT id FROM jobs WHERE run_at <= NOW() AND status = 'pending' 
+             ORDER BY run_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`);
         return result.rows[0]
+        
     }
     catch(error){
         console.error(error);
@@ -47,7 +50,7 @@ export const failedJob = async(jobId)=>{
 
                                          run_at = CASE
                                          WHEN attempts + 1 > max_attempts THEN NOW()
-                                         ELSE NOW() + INTERVAL '3 seconds'
+                                         ELSE NOW() + INTERVAL '120 seconds'
                                          END,
 
                                          updated_at = NOW()
@@ -61,6 +64,23 @@ export const failedJob = async(jobId)=>{
     }
     
 }
+
+export const getStaleJob = async ()=>{
+    const getId = await pool.query(`
+            SELECT id FROM jobs
+            WHERE updated_at <= NOW() - INTERVAL '1 minutes'
+            AND status = 'ongoing'
+            ORDER BY run_at ASC
+        
+        `);
+    for(let i =0; i < getId.rows.length; i++){
+        await failedJob(getId.rows[i].id)
+        console.log(getId.rows[i].id) 
+    }
+    
+    
+}
+
 
 
 
